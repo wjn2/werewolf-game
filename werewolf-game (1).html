@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>狼人杀身份抽取平台</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#9c27b0',
+                        secondary: '#3f51b5',
+                        accent: '#ff5722',
+                        dark: '#212121',
+                        light: '#f5f5f5'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .text-shadow {
+                text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            .card-flip {
+                perspective: 1000px;
+                transform-style: preserve-3d;
+            }
+            .card-front, .card-back {
+                backface-visibility: hidden;
+                transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            }
+            .card-back {
+                transform: rotateY(180deg);
+            }
+            .card-flipped .card-front {
+                transform: rotateY(180deg);
+            }
+            .card-flipped .card-back {
+                transform: rotateY(0deg);
+            }
+            .animate-float {
+                animation: float 6s ease-in-out infinite;
+            }
+            @keyframes float {
+                0% { transform: translateY(0px); }
+                50% { transform: translateY(-10px); }
+                100% { transform: translateY(0px); }
+            }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-dark to-primary min-h-screen text-light font-sans">
+    <div class="container mx-auto px-4 py-8 max-w-6xl">
+        <!-- 头部区域 -->
+        <header class="text-center mb-12">
+            <h1 class="text-[clamp(2.5rem,5vw,4rem)] font-bold mb-4 text-shadow animate-float">
+                <i class="fa fa-paw mr-3 text-accent"></i>狼人杀身份抽取
+            </h1>
+            <p class="text-lg md:text-xl text-light/80 max-w-3xl mx-auto">
+                在线随机分配角色，支持多人同时游戏，无需连接相同网络
+            </p>
+        </header>
+
+        <!-- 主内容区域 -->
+        <main class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- 左侧：游戏信息和控制 -->
+            <section class="lg:col-span-1 space-y-6">
+                <!-- 游戏设置卡片 -->
+                <div class="bg-dark/60 backdrop-blur-md rounded-xl p-6 shadow-lg border border-primary/30">
+                    <h2 class="text-xl font-bold mb-4 flex items-center">
+                        <i class="fa fa-cog mr-2 text-accent"></i>游戏设置
+                    </h2>
+                    <form id="game-settings" class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium mb-1">玩家人数</label>
+                            <div class="flex items-center">
+                                <button type="button" id="decrease-players" class="bg-primary/80 hover:bg-primary text-white rounded-l-lg px-3 py-2 transition-all">
+                                    <i class="fa fa-minus"></i>
+                                </button>
+                                <input type="number" id="player-count" min="4" max="18" value="8" 
+                                    class="w-full bg-dark/80 border border-primary/50 text-center py-2 focus:outline-none focus:ring-2 focus:ring-accent">
+                                <button type="button" id="increase-players" class="bg-primary/80 hover:bg-primary text-white rounded-r-lg px-3 py-2 transition-all">
+                                    <i class="fa fa-plus"></i>
+                                </button>
+                            </div>
+                            <p class="text-xs text-light/60 mt-1">支持4-18人游戏</p>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium mb-1">身份配置</label>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div class="bg-dark/80 p-3 rounded-lg border border-primary/30">
+                                    <label class="flex justify-between items-center text-sm">
+                                        <span>狼人</span>
+                                        <input type="number" id="werewolf-count" min="1" max="10" value="3" 
+                                            class="w-12 bg-dark/80 border border-primary/50 text-center py-1 focus:outline-none focus:ring-2 focus:ring-accent rounded">
+                                    </label>
+                                </div>
+                                <div class="bg-dark/80 p-3 rounded-lg border border-primary/30">
+                                    <label class="flex justify-between items-center text-sm">
+                                        <span>村民</span>
+                                        <input type="number" id="villager-count" min="1" max="10" value="3" 
+                                            class="w-12 bg-dark/80 border border-primary/50 text-center py-1 focus:outline-none focus:ring-2 focus:ring-accent rounded">
+                                    </label>
+                                </div>
+                                <div class="bg-dark/80 p-3 rounded-lg border border-primary/30">
+                                    <label class="flex justify-between items-center text-sm">
+                                        <span>预言家</span>
+                                        <input type="number" id="seer-count" min="0" max="1" value="1" 
+                                            class="w-12 bg-dark/80 border border-primary/50 text-center py-1 focus:outline-none focus:ring-2 focus:ring-accent rounded">
+                                    </label>
+                                </div>
+                                <div class="bg-dark/80 p-3 rounded-lg border border-primary/30">
+                                    <label class="flex justify-between items-center text-sm">
+                                        <span>女巫</span>
+                                        <input type="number" id="witch-count" min="0" max="1" value="1" 
+                                            class="w-12 bg-dark/80 border border-primary/50 text-center py-1 focus:outline-none focus:ring-2 focus:ring-accent rounded">
+                                    </label>
+                                </div>
+                                <div class="bg-dark/80 p-3 rounded-lg border border-primary/30">
+                                    <label class="flex justify-between items-center text-sm">
+                                        <span>猎人</span>
+                                        <input type="number" id="hunter-count" min="0" max="1" value="1" 
+                                            class="w-12 bg-dark/80 border border-primary/50 text-center py-1 focus:outline-none focus:ring-2 focus:ring-accent rounded">
+                                    </label>
+                                </div>
+                                <div class="bg-dark/80 p-3 rounded-lg border border-primary/30">
+                                    <label class="flex justify-between items-center text-sm">
+                                        <span>白痴</span>
+                                        <input type="number" id="idiot-count" min="0" max="1" value="0" 
+                                            class="w-12 bg-dark/80 border border-primary/50 text-center py-1 focus:outline-none focus:ring-2 focus:ring-accent rounded">
+                                    </label>
+                                </div>
+                            </div>
+                            <button type="button" id="auto-config" class="mt-2 text-xs text-accent hover:underline">
+                                <i class="fa fa-magic mr-1"></i>自动配置
+                            </button>
+                        </div>
+
+                        <button type="button" id="create-game" 
+                            class="w-full bg-accent hover:bg-accent/90 text-white font-medium py-3 rounded-lg transition-all transform hover:scale-[1.02] flex items-center justify-center">
+                            <i class="fa fa-play-circle mr-2"></i>创建游戏
+                        </button>
+                    </form>
+                </div>
+
+                <!-- 游戏说明卡片 -->
+                <div class="bg-dark/60 backdrop-blur-md rounded-xl p-6 shadow-lg border border-primary/30">
+                    <h2 class="text-xl font-bold mb-4 flex items-center">
+                        <i class="fa fa-book mr-2 text-accent"></i>游戏说明
+                    </h2>
+                    <div class="space-y-3 text-sm text-light/90">
+                        <p>1. 设置玩家人数和身份配置，点击"创建游戏"</p>
+                        <p>2. 分享游戏ID给其他玩家</p>
+                        <p>3. 所有玩家输入游戏ID和昵称加入游戏</p>
+                        <p>4. 所有人加入后，主持人点击"开始抽取身份"</p>
+                        <p>5. 每个玩家点击自己的卡牌查看身份</p>
+                        <p class="text-accent">支持多人同时在线游戏，无需连接相同网络</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 右侧：游戏区域 -->
+            <section class="lg:col-span-2 space-y-6">
+                <!-- 游戏状态卡片 -->
+                <div class="bg-dark/60 backdrop-blur-md rounded-xl p-6 shadow-lg border border-primary/30" id="game-status-card">
+                    <h2 class="text-xl font-bold mb-4 flex items-center">
+                        <i class="fa fa-gamepad mr-2 text-accent"></i>游戏状态
+                    </h2>
+                    <div id="game-not-started" class="text-center py-8">
+                        <div class="w-24 h-24 mx-auto mb-4 rounded-full bg-primary/20 flex items-center justify-center">
+                            <i class="fa fa-paw text-4xl text-accent/70 animate-pulse"></i>
+                        </div>
+                        <p class="text-light/70">请先创建游戏</p>
+                    </div>
+
+                    <!-- 游戏创建后显示 -->
+                    <div id="game-created" class="hidden">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                            <div class="bg-dark/80 p-4 rounded-lg border border-primary/30">
+                                <p class="text-xs text-light/60 mb-1">游戏ID</p>
+                                <div class="flex">
+                                    <span id="game-id-display" class="text-lg font-mono font-bold text-accent flex-1 break-all"></span>
+                                    <button id="copy-game-id" class="ml-2 text-light/60 hover:text-accent">
+                                        <i class="fa fa-copy"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="bg-dark/80 p-4 rounded-lg border border-primary/30">
+                                <p class="text-xs text-light/60 mb-1">我的昵称</p>
+                                <div class="flex">
+                                    <input type="text" id="player-name" placeholder="请输入你的昵称" 
+                                        class="flex-1 bg-dark/80 border border-primary/50 py-2 px-3 focus:outline-none focus:ring-2 focus:ring-accent rounded-l-lg">
+                                    <button id="join-game" class="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-r-lg transition-all">
+                                        加入
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="waiting-for-players" class="hidden">
+                            <h3 class="font-medium mb-3 flex items-center">
+                                <i class="fa fa-users mr-2 text-accent"></i>等待玩家加入
+                            </h3>
+                            <div id="players-list" class="space-y-2 max-h-48 overflow-y-auto pr-2">
+                                <!-- 玩家列表将在这里动态生成 -->
+                            </div>
+                            <div class="mt-4 text-center">
+                                <button id="start-game" class="bg-accent hover:bg-accent/90 text-white font-medium py-2 px-6 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                                    开始抽取身份
+                                </button>
+                            </div>
+                        </div>
+
+                        <div id="game-in-progress" class="hidden">
+                            <div class="flex justify-between items-center mb-4">
+                                <h3 class="font-medium flex items-center">
+                                    <i class="fa fa-shield mr-2 text-accent"></i>游戏进行中
+                                </h3>
+                                <span id="reveal-status" class="text-xs bg-primary/30 py-1 px-3 rounded-full">
+                                    未查看身份
+                                </span>
+                            </div>
+                            
+                            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3" id="player-cards">
+                                <!-- 玩家卡片将在这里动态生成 -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 身份说明卡片 -->
+                <div class="bg-dark/60 backdrop-blur-md rounded-xl p-6 shadow-lg border border-primary/30">
+                    <h2 class="text-xl font-bold mb-4 flex items-center">
+                        <i class="fa fa-info-circle mr-2 text-accent"></i>身份说明
+                    </h2>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div class="bg-dark/80 p-3 rounded-lg border-l-4 border-accent">
+                            <h3 class="font-medium text-accent mb-1">狼人</h3>
+                            <p class="text-sm text-light/80">每晚可以袭击一名玩家，白天隐藏身份投票</p>
+                        </div>
+                        <div class="bg-dark/80 p-3 rounded-lg border-l-4 border-blue-500">
+                            <h3 class="font-medium text-blue-400 mb-1">村民</h3>
+                            <p class="text-sm text-light/80">没有特殊技能，白天通过投票找出狼人</p>
+                        </div>
+                        <div class="bg-dark/80 p-3 rounded-lg border-l-4 border-purple-500">
+                            <h3 class="font-medium text-purple-400 mb-1">预言家</h3>
+                            <p class="text-sm text-light/80">每晚可以查验一名玩家的身份是狼人还是好人</p>
+                        </div>
+                        <div class="bg-dark/80 p-3 rounded-lg border-l-4 border-green-500">
+                            <h3 class="font-medium text-green-400 mb-1">女巫</h3>
+                            <p class="text-sm text-light/80">拥有解药和毒药，可救人或毒人</p>
+                        </div>
+                        <div class="bg-dark/80 p-3 rounded-lg border-l-4 border-red-500">
+                            <h3 class="font-medium text-red-400 mb-1">猎人</h3>
+                            <p class="text-sm text-light/80">被狼人杀害或投票出局时，可以开枪带走一名玩家</p>
+                        </div>
+                        <div class="bg-dark/80 p-3 rounded-lg border-l-4 border-yellow-500">
+                            <h3 class="font-medium text-yellow-400 mb-1">白痴</h3>
+                            <p class="text-sm text-light/80">被投票出局后，可以亮出身份，继续参与游戏但失去投票权</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- 页脚区域 -->
+        <footer class="mt-12 text-center text-light/60 text-sm">
+            <p>© 2025 狼人杀身份抽取平台 | 支持多人在线游戏</p>
+        </footer>
+    </div>
+
+    <!-- 身份卡片模态框 -->
+    <div id="identity-modal" class="fixed inset-0 bg-dark/90 flex items-center justify-center z-50 hidden">
+        <div class="relative w-full max-w-md px-4">
+            <div class="bg-gradient-to-br from-primary/80 to-dark rounded-2xl shadow-2xl p-6 transform transition-all">
+                <button id="close-modal" class="absolute -top-4 -right-4 bg-dark/80 hover:bg-dark text-accent w-10 h-10 rounded-full flex items-center justify-center transition-all">
+                    <i class="fa fa-times"></i>
+                </button>
+                <div class="text-center">
+                    <div class="w-24 h-24 mx-auto mb-4 rounded-full bg-primary/20 flex items-center justify-center">
+                        <i id="identity-icon" class="text-4xl text-accent"></i>
+                    </div>
+                    <h3 id="identity-name" class="text-2xl font-bold mb-2"></h3>
+                    <p id="identity-description" class="text-light/80 mb-4"></p>
+                    <p id="identity-team" class="text-xs bg-dark/50 py-1 px-3 rounded-full inline-block"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 身份配置
+        const identities = [
+            { name: '狼人', icon: 'fa-paw', team: '狼人阵营', color: 'text-accent', description: '每晚可以袭击一名玩家，白天隐藏身份投票。', count: 3 },
+            { name: '村民', icon: 'fa-user', team: '好人阵营', color: 'text-blue-400', description: '没有特殊技能，白天通过投票找出狼人。', count: 3 },
+            { name: '预言家', icon: 'fa-eye', team: '好人阵营', color: 'text-purple-400', description: '每晚可以查验一名玩家的身份是狼人还是好人。', count: 1 },
+            { name: '女巫', icon: 'fa-flask', team: '好人阵营', color: 'text-green-400', description: '拥有解药和毒药，可救人或毒人。', count: 1 },
+            { name: '猎人', icon: 'fa-crosshairs', team: '好人阵营', color: 'text-red-400', description: '被狼人杀害或投票出局时，可以开枪带走一名玩家。', count: 1 },
+            { name: '白痴', icon: 'fa-smile-o', team: '好人阵营', color: 'text-yellow-400', description: '被投票出局后，可以亮出身份，继续参与游戏但失去投票权。', count: 0 }
+        ];
+
+        // 游戏状态
+        let gameState = {
+            gameId: null,
+            playerId: null,
+            playerName: '',
+            isHost: false,
+            players: [],
+            gameStarted: false,
+            assignedIdentities: []
+        };
+
+        // DOM元素
+        const gameSettingsForm = document.getElementById('game-settings');
+        const playerCountInput = document.getElementById('player-count');
+        const decreasePlayersBtn = document.getElementById('decrease-players');
+        const increasePlayersBtn = document.getElementById('increase-players');
+        const autoConfigBtn = document.getElementById('auto-config');
+        const createGameBtn = document.getElementById('create-game');
+        const gameIdDisplay = document.getElementById('game-id-display');
+        const copyGameIdBtn = document.getElementById('copy-game-id');
+        const playerNameInput = document.getElementById('player-name');
+        const joinGameBtn = document.getElementById('join-game');
+        const startGameBtn = document.getElementById('start-game');
+        const playersList = document.getElementById('players-list');
+        const playerCards = document.getElementById('player-cards');
+        const revealStatus = document.getElementById('reveal-status');
+        const gameNotStarted = document.getElementById('game-not-started');
+        const gameCreated = document.getElementById('game-created');
+        const waitingForPlayers = document.getElementById('waiting-for-players');
+        const gameInProgress = document.getElementById('game-in-progress');
+        const identityModal = document.getElementById('identity-modal');
+        const closeModalBtn = document.getElementById('close-modal');
+        const identityIcon = document.getElementById('identity-icon');
+        const identityName = document.getElementById('identity-name');
+        const identityDescription = document.getElementById('identity-description');
+        const identityTeam = document.getElementById('identity-team');
+
+        // 玩家数量控制
+        decreasePlayersBtn.addEventListener('click', () => {
+            if (playerCountInput.value > parseInt(playerCountInput.min)) {
+                playerCountInput.value = parseInt(playerCountInput.value) - 1;
+                updateIdentityCounts();
+            }
+        });
+
+        increasePlayersBtn.addEventListener('click', () => {
+            if (playerCountInput.value < parseInt(playerCountInput.max)) {
+                playerCountInput.value = parseInt(playerCountInput.value) + 1;
+                updateIdentityCounts();
+            }
+        });
+
+        // 自动配置身份
+        autoConfigBtn.addEventListener('click', () => {
+            updateIdentityCounts(true);
+        });
+
+        // 更新身份数量
+        function updateIdentityCounts(auto = false) {
+            const playerCount = parseInt(playerCountInput.value);
+            
+            if (auto) {
+                // 根据玩家数量自动配置身份
+                document.getElementById('werewolf-count').value = Math.max(1, Math.floor(playerCount / 3));
+                document.getElementById('villager-count').value = Math.max(1, playerCount - 3); // 保留3个位置给特殊角色
+                
+                // 特殊角色配置
+                document.getElementById('seer-count').value = 1;
+                document.getElementById('witch-count').value = 1;
+                document.getElementById('hunter-count').value = playerCount >= 8 ? 1 : 0;
+                document.getElementById('idiot-count').value = playerCount >= 10 ? 1 : 0;
+            }
+            
+            // 确保身份总数等于玩家数
+            const sum = ['werewolf', 'villager', 'seer', 'witch', 'hunter', 'idiot']
+                .reduce((acc, id) => acc + parseInt(document.getElementById(`${id}-count`).value), 0);
+            
+            if (sum !== playerCount) {
+                // 调整村民数量以匹配玩家总数
+                const currentVillagers = parseInt(document.getElementById('villager-count').value);
+                const newVillagers = Math.max(1, currentVillagers + (playerCount - sum));
+                document.getElementById('villager-count').value = newVillagers;
+            }
+        }
+
+        // 创建游戏
+        createGameBtn.addEventListener('click', () => {
+            // 生成随机游戏ID
+            gameState.gameId = generateGameId();
+            gameState.isHost = true;
+            
+            // 更新UI
+            gameIdDisplay.textContent = gameState.gameId;
+            gameNotStarted.classList.add('hidden');
+            gameCreated.classList.remove('hidden');
+            waitingForPlayers.classList.remove('hidden');
+            
+            // 添加主持人到玩家列表
+            gameState.playerName = playerNameInput.value || '主持人';
+            addPlayer(gameState.playerId, gameState.playerName, gameState.isHost);
+            
+            // 禁用加入按钮，启用开始按钮
+            joinGameBtn.disabled = true;
+            startGameBtn.disabled = false;
+            
+            // 保存游戏状态到本地存储
+            saveGameState();
+            
+            console.log('游戏创建成功:', gameState);
+        });
+
+        // 加入游戏
+        joinGameBtn.addEventListener('click', () => {
+            const playerName = playerNameInput.value.trim();
+            if (!playerName) {
+                alert('请输入您的昵称');
+                return;
+            }
+            
+            if (!gameState.gameId) {
+                alert('请先创建游戏或输入游戏ID');
+                return;
+            }
+            
+            gameState.playerName = playerName;
+            gameState.playerId = generatePlayerId();
+            
+            // 添加玩家到玩家列表
+            addPlayer(gameState.playerId, gameState.playerName, gameState.isHost);
+            
+            // 更新UI
+            gameNotStarted.classList.add('hidden');
+            gameCreated.classList.remove('hidden');
+            waitingForPlayers.classList.remove('hidden');
+            joinGameBtn.disabled = true;
+            
+            // 保存游戏状态到本地存储
+            saveGameState();
+            
+            console.log('玩家加入成功:', gameState);
+        });
+
+        // 复制游戏ID
+        copyGameIdBtn.addEventListener('click', () => {
+            navigator.clipboard.writeText(gameState.gameId)
+                .then(() => {
+                    const originalText = copyGameIdBtn.innerHTML;
+                    copyGameIdBtn.innerHTML = '<i class="fa fa-check"></i>';
+                    setTimeout(() => {
+                        copyGameIdBtn.innerHTML = originalText;
+                    }, 2000);
+                })
+                .catch(err => {
+                    console.error('无法复制文本: ', err);
+                    alert('复制失败，请手动复制游戏ID');
+                });
+        });
+
+        // 开始游戏
+        startGameBtn.addEventListener('click', () => {
+            if (!gameState.isHost) {
+                alert('只有主持人可以开始游戏');
+                return;
+            }
+            
+            if (gameState.players.length < 4) {
+                alert('至少需要4名玩家才能开始游戏');
+                return;
+            }
+            
+            // 分配身份
+            assignIdentities();
+            
+            // 更新UI
+            waitingForPlayers.classList.add('hidden');
+            gameInProgress.classList.remove('hidden');
+            
+            // 生成玩家卡片
+            generatePlayerCards();
+            
+            // 更新游戏状态
+            gameState.gameStarted = true;
+            saveGameState();
+            
+            console.log('游戏开始:', gameState);
+        });
+
+        // 分配身份
+        function assignIdentities() {
+            // 从表单获取身份配置
+            const werewolfCount = parseInt(document.getElementById('werewolf-count').value);
+            const villagerCount = parseInt(document.getElementById('villager-count').value);
+            const seerCount = parseInt(document.getElementById('seer-count').value);
+            const witchCount = parseInt(document.getElementById('witch-count').value);
+            const hunterCount = parseInt(document.getElementById('hunter-count').value);
+            const idiotCount = parseInt(document.getElementById('idiot-count').value);
+            
+            // 创建身份池
+            let identityPool = [];
+            identityPool = identityPool.concat(Array(werewolfCount).fill('狼人'));
+            identityPool = identityPool.concat(Array(villagerCount).fill('村民'));
+            identityPool = identityPool.concat(Array(seerCount).fill('预言家'));
+            identityPool = identityPool.concat(Array(witchCount).fill('女巫'));
+            identityPool = identityPool.concat(Array(hunterCount).fill('猎人'));
+            identityPool = identityPool.concat(Array(idiotCount).fill('白痴'));
+            
+            // 打乱身份顺序
+            identityPool = shuffleArray(identityPool);
+            
+            // 分配身份给玩家
+            gameState.players.forEach((player, index) => {
+                if (index < identityPool.length) {
+                    player.identity = identityPool[index];
+                    player.revealed = false;
+                }
+            });
+            
+            // 保存分配的身份
+            gameState.assignedIdentities = identityPool;
+        }
+
+        // 生成玩家卡片
+        function generatePlayerCards() {
+            playerCards.innerHTML = '';
+            
+            gameState.players.forEach(player => {
+                const card = document.createElement('div');
+                card.className = 'card-flip relative cursor-pointer';
+                card.dataset.playerId = player.id;
+                
+                // 确定卡片样式
+                const isCurrentPlayer = player.id === gameState.playerId;
+                const cardClasses = isCurrentPlayer 
+                    ? 'bg-gradient-to-br from-primary to-dark border-2 border-accent' 
+                    : 'bg-gradient-to-br from-secondary/30 to-dark/80 border border-primary/30';
+                
+                // 卡片正面
+                const cardFront = document.createElement('div');
+                cardFront.className = `card-front absolute inset-0 rounded-lg p-3 flex flex-col items-center justify-center ${cardClasses}`;
+                
+                const nameTag = document.createElement('div');
+                nameTag.className = 'absolute top-2 left-2 right-2 text-center text-xs bg-dark/60 py-1 rounded-full';
+                nameTag.textContent = player.name;
+                cardFront.appendChild(nameTag);
+                
+                const iconContainer = document.createElement('div');
+                iconContainer.className = 'w-12 h-12 rounded-full bg-dark/30 flex items-center justify-center mb-2';
+                const icon = document.createElement('i');
+                icon.className = 'fa fa-user text-xl text-light/70';
+                iconContainer.appendChild(icon);
+                cardFront.appendChild(iconContainer);
+                
+                const roleText = document.createElement('p');
+                roleText.className = 'text-xs text-light/70';
+                roleText.textContent = isCurrentPlayer ? '点击查看身份' : '未查看';
+                cardFront.appendChild(roleText);
+                
+                // 卡片背面
+                const cardBack = document.createElement('div');
+                cardBack.className = `card-back absolute inset-0 rounded-lg p-3 flex flex-col items-center justify-center ${cardClasses}`;
+                
+                const nameTagBack = document.createElement('div');
+                nameTagBack.className = 'absolute top-2 left-2 right-2 text-center text-xs bg-dark/60 py-1 rounded-full';
+                nameTagBack.textContent = player.name;
+                cardBack.appendChild(nameTagBack);
+                
+                const identityContainer = document.createElement('div');
+                identityContainer.className = 'w-12 h-12 rounded-full bg-dark/30 flex items-center justify-center mb-2';
+                const identityIcon = document.createElement('i');
+                
+                // 如果是当前玩家或已揭示身份，则显示真实身份
+                if (isCurrentPlayer || player.revealed) {
+                    const identityData = identities.find(id => id.name === player.identity);
+                    identityIcon.className = `fa ${identityData.icon} text-xl ${identityData.color}`;
+                    identityContainer.appendChild(identityIcon);
+                    cardBack.appendChild(identityContainer);
+                    
+                    const identityName = document.createElement('p');
+                    identityName.className = `font-medium ${identityData.color}`;
+                    identityName.textContent = player.identity;
+                    cardBack.appendChild(identityName);
+                } else {
+                    // 否则显示未知
+                    identityIcon.className = 'fa fa-question text-xl text-light/70';
+                    identityContainer.appendChild(identityIcon);
+                    cardBack.appendChild(identityContainer);
+                    
+                    const unknownText = document.createElement('p');
+                    unknownText.className = 'text-xs text-light/70';
+                    unknownText.textContent = '未知身份';
+                    cardBack.appendChild(unknownText);
+                }
+                
+                // 添加到卡片
+                card.appendChild(cardFront);
+                card.appendChild(cardBack);
+                
+                // 添加点击事件
+                if (isCurrentPlayer && !player.revealed) {
+                    card.addEventListener('click', () => revealIdentity(player.id));
+                }
+                
+                // 添加到容器
+                playerCards.appendChild(card);
+            });
+            
+            // 更新揭示状态
+            updateRevealStatus();
+        }
+
+        // 显示身份
+        function revealIdentity(playerId) {
+            const player = gameState.players.find(p => p.id === playerId);
+            if (!player || player.revealed) return;
+            
+            // 标记为已揭示
+            player.revealed = true;
+            
+            // 更新UI
+            generatePlayerCards();
+            
+            // 显示身份详情
+            const identityData = identities.find(id => id.name === player.identity);
+            identityIcon.className = `fa ${identityData.icon} ${identityData.color}`;
+            identityName.textContent = identityData.name;
+            identityDescription.textContent = identityData.description;
+            identityTeam.textContent = identityData.team;
+            identityTeam.className = `text-xs bg-dark/50 py-1 px-3 rounded-full inline-block ${identityData.color.replace('text-', 'bg-')} bg-opacity-20`;
+            
+            // 显示模态框
+            identityModal.classList.remove('hidden');
+            
+            // 保存游戏状态
+            saveGameState();
+        }
+
+        // 关闭模态框
+        closeModalBtn.addEventListener('click', () => {
+            identityModal.classList.add('hidden');
+        });
+
+        // 更新揭示状态
+        function updateRevealStatus() {
+            const currentPlayer = gameState.players.find(p => p.id === gameState.playerId);
+            if (currentPlayer && currentPlayer.revealed) {
+                revealStatus.textContent = '已查看身份';
+                revealStatus.className = 'text-xs bg-green-500/30 py-1 px-3 rounded-full';
+            } else {
+                revealStatus.textContent = '未查看身份';
+                revealStatus.className = 'text-xs bg-primary/30 py-1 px-3 rounded-full';
+            }
+        }
+
+        // 添加玩家到列表
+        function addPlayer(playerId, playerName, isHost) {
+            // 检查玩家是否已存在
+            const existingPlayer = gameState.players.find(p => p.id === playerId);
+            if (existingPlayer) return;
+            
+            // 添加新玩家
+            const newPlayer = {
+                id: playerId || generatePlayerId(),
+                name: playerName,
+                isHost: isHost || false,
+                identity: null,
+                revealed: false
+            };
+            
+            gameState.players.push(newPlayer);
+            
+            // 更新玩家列表UI
+            updatePlayersList();
+            
+            // 启用开始按钮（如果是主持人且玩家足够）
+            if (gameState.isHost && gameState.players.length >= 4) {
+                startGameBtn.disabled = false;
+            }
+        }
+
+        // 更新玩家列表UI
+        function updatePlayersList() {
+            playersList.innerHTML = '';
+            
+            gameState.players.forEach(player => {
+                const playerItem = document.createElement('div');
+                playerItem.className = 'flex items-center justify-between bg-dark/80 p-2 rounded-lg';
+                
+                const playerInfo = document.createElement('div');
+                playerInfo.className = 'flex items-center';
+                
+                if (player.isHost) {
+                    const hostBadge = document.createElement('span');
+                    hostBadge.className = 'bg-accent/80 text-xs py-0.5 px-2 rounded-full mr-2';
+                    hostBadge.textContent = '主持人';
+                    playerInfo.appendChild(hostBadge);
+                }
+                
+                const playerName = document.createElement('span');
+                playerName.className = 'font-medium';
+                playerName.textContent = player.name;
+                playerInfo.appendChild(playerName);
+                
+                playerItem.appendChild(playerInfo);
+                
+                if (gameState.isHost && !player.isHost && gameState.gameStarted) {
+                    const statusBadge = document.createElement('span');
+                    statusBadge.className = player.revealed 
+                        ? 'bg-green-500/30 text-xs py-0.5 px-2 rounded-full' 
+                        : 'bg-primary/30 text-xs py-0.5 px-2 rounded-full';
+                    statusBadge.textContent = player.revealed ? '已查看' : '未查看';
+                    playerItem.appendChild(statusBadge);
+                }
+                
+                playersList.appendChild(playerItem);
+            });
+        }
+
+        // 生成随机游戏ID
+        function generateGameId() {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            let result = '';
+            for (let i = 0; i < 6; i++) {
+                result += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return result;
+        }
+
+        // 生成随机玩家ID
+        function generatePlayerId() {
+            return 'player_' + Math.random().toString(36).substr(2, 9);
+        }
+
+        // 打乱数组
+        function shuffleArray(array) {
+            const newArray = [...array];
+            for (let i = newArray.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+            }
+            return newArray;
+        }
+
+        // 保存游戏状态到本地存储
+        function saveGameState() {
+            localStorage.setItem('werewolfGameState', JSON.stringify(gameState));
+        }
+
+        // 从本地存储加载游戏状态
+        function loadGameState() {
+            try {
+                const savedState = localStorage.getItem('werewolfGameState');
+                if (savedState) {
+                    gameState = JSON.parse(savedState);
+                    
+                    // 更新UI
+                    if (gameState.gameId) {
+                        gameIdDisplay.textContent = gameState.gameId;
+                        gameNotStarted.classList.add('hidden');
+                        gameCreated.classList.remove('hidden');
+                        
+                        if (gameState.gameStarted) {
+                            waitingForPlayers.classList.add('hidden');
+                            gameInProgress.classList.remove('hidden');
+                            generatePlayerCards();
+                        } else {
+                            waitingForPlayers.classList.remove('hidden');
+                            updatePlayersList();
+                        }
+                        
+                        // 如果玩家已加入，禁用加入按钮
+                        if (gameState.playerId) {
+                            joinGameBtn.disabled = true;
+                            playerNameInput.value = gameState.playerName;
+                        }
+                        
+                        // 如果是主持人且玩家足够，启用开始按钮
+                        if (gameState.isHost && gameState.players.length >= 4) {
+                            startGameBtn.disabled = false;
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('加载游戏状态失败:', error);
+            }
+        }
+
+        // 页面加载时初始化
+        window.addEventListener('DOMContentLoaded', () => {
+            loadGameState();
+            updateIdentityCounts();
+            
+            // 为所有输入框添加自动保存
+            const allInputs = document.querySelectorAll('input');
+            allInputs.forEach(input => {
+                input.addEventListener('change', updateIdentityCounts);
+            });
+        });
+    </script>
+</body>
+</html>
+    
